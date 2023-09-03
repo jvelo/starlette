@@ -139,6 +139,25 @@ def test_session_cookie_subpath(test_client_factory):
     assert cookie_path == "/second_app"
 
 
+def test_session_cookie_domain(test_client_factory):
+    app = Starlette(
+        routes=[
+            Route("/update_session", endpoint=update_session, methods=["POST"]),
+        ],
+        middleware=[
+            Middleware(SessionMiddleware, secret_key="example", domain="example.com")
+        ],
+    )
+    client = test_client_factory(app, base_url="https://example.com")
+    response = client.post("/update_session", json={"some": "data"})
+    assert response.status_code == 200
+    cookie = response.headers["set-cookie"]
+    cookie_domain_match = re.search(r"; domain=(\S+);", cookie)
+    assert cookie_domain_match is not None
+    cookie_domain = cookie_domain_match.groups()[0]
+    assert cookie_domain == "example.com"
+
+
 def test_invalid_session_cookie(test_client_factory):
     app = Starlette(
         routes=[
